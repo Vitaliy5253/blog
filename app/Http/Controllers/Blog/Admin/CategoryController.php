@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Blog\Admin;
 
 //use App\Http\Controllers\Controller;
 use App\Models\BlogCategory;
+use App\Repositories\BlogCategoryRepository;
 use Illuminate\Support\Str;
 //use Illuminate\Http\Request;
 use App\Http\Requests\BlogCategoryUpdateRequest;
@@ -12,17 +13,27 @@ use App\Http\Requests\BlogCategoryCreateRequest;
 class CategoryController extends BaseController
 {
     /**
+     * @var BlogCategoryRepository
+     */
+    private $blogCategoryRepository;
+
+    public function __construct()
+    {
+        parent::__construct();
+        $this->blogCategoryRepository = app(BlogCategoryRepository::class);
+    }
+    /**
      * Display a listing of the resource.
      *
      * @return \Illuminate\Http\Response
      */
     public function index()
     {
-        $paginator = BlogCategory::paginate(5);
-
-        return view('blog.admin.categories.index', compact('paginator'));
-        //dd(__METHOD__);
         //
+        //dd(__METHOD__);
+        //$paginator = BlogCategory::paginate(5);
+        $paginator = $this->blogCategoryRepository->getAllWithPaginate(5);
+        return view('blog.admin.categories.index', compact('paginator'));
     }
 
     /**
@@ -32,13 +43,12 @@ class CategoryController extends BaseController
      */
     public function create()
     {
-        $item = new BlogCategory();
-        $categoryList = BlogCategory::all();
-
-        return view('blog.admin.categories.edit', compact('item', 'categoryList'));
-
-        //dd(__METHOD__);
         //
+        //dd(__METHOD__);
+        $item = new BlogCategory();
+        $categoryList = //BlogCategory::all();
+            $this->blogCategoryRepository->getForComboBox();
+        return view('blog.admin.categories.edit', compact('item', 'categoryList'));
     }
 
     /**
@@ -49,6 +59,8 @@ class CategoryController extends BaseController
      */
     public function store(BlogCategoryCreateRequest $request)
     {
+        //
+        //dd(__METHOD__);
         $data = $request->input(); //отримаємо масив даних, які надійшли з форми
         if (empty($data['slug'])) { //якщо псевдонім порожній
             $data['slug'] = Str::slug($data['title']); //генеруємо псевдонім
@@ -65,9 +77,6 @@ class CategoryController extends BaseController
                 ->withErrors(['msg' => 'Помилка збереження'])
                 ->withInput();
         }
-
-        //dd(__METHOD__);
-        //
     }
 
     /**
@@ -78,8 +87,8 @@ class CategoryController extends BaseController
      */
     public function show($id)
     {
-        //dd(__METHOD__);
         //
+        //dd(__METHOD__);
     }
 
     /**
@@ -90,13 +99,15 @@ class CategoryController extends BaseController
      */
     public function edit($id)
     {
-        $item = BlogCategory::findOrFail($id);
-        $categoryList = BlogCategory::all();
+        //
+        //dd(__METHOD__);
+        $item = $this->blogCategoryRepository->getEdit($id);
+        if (empty($item)) {                         //помилка, якщо репозиторій не знайде наш ід
+            abort(404);
+        }
+        $categoryList = $this->blogCategoryRepository->getForComboBox($item->parent_id);
 
         return view('blog.admin.categories.edit', compact('item', 'categoryList'));
-
-        //dd(__METHOD__);
-        //
     }
 
     /**
@@ -108,11 +119,29 @@ class CategoryController extends BaseController
      */
     public function update(BlogCategoryUpdateRequest $request, $id)
     {
-        $item = BlogCategory::find($id);
+        //
+        //dd(__METHOD__);
+        $item = //BlogCategory::find($id);
+            $this->blogCategoryRepository->getEdit($id);
         if (empty($item)) { //якщо ід не знайдено
             return back() //redirect back
             ->withErrors(['msg' => "Запис id=[{$id}] не знайдено"]) //видати помилку
             ->withInput(); //повернути дані
+
+            $rules = [
+                'title' => 'required|min:5|max:200',
+                'slug' => 'max:200',
+                'description' => 'string|max:500|min:3',
+                'parent_id' => 'required|integer|exists:blog_categories,id',
+            ];
+
+            $validator = Validator::make($request->all(), $rules);  //валідація через клас
+            $validatedData[] = $validator->passes(); //перевіряє чи все ок
+            $validatedData[] = $validator->validate(); //редірект якщо помилка
+            $validatedData[] = $validator->valid(); //видає валідні дані
+            $validatedData[] = $validator->failed(); //видає невалідні дані
+            $validatedData[] = $validator->errors(); //текст помилки
+            $validatedData[] = $validator->fails(); //1, якщо помилка
         }
 
         $data = $request->all(); //отримаємо масив даних, які надійшли з форми
@@ -131,9 +160,6 @@ class CategoryController extends BaseController
                 ->with(['msg' => 'Помилка збереження'])
                 ->withInput();
         }
-
-        //dd(__METHOD__);
-        //
     }
 
     /**
@@ -144,7 +170,7 @@ class CategoryController extends BaseController
      */
     public function destroy($id)
     {
-        //dd(__METHOD__);
         //
+        //dd(__METHOD__);
     }
 }
