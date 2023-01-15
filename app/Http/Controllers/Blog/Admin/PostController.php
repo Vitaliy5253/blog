@@ -2,21 +2,11 @@
 
 namespace App\Http\Controllers\Blog\Admin;
 
-use App\Repositories\BlogPostRepository;
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 
-class PostController extends BaseController
+class PostController extends Controller
 {
-    /**
-     * @var BlogPostRepository
-     */
-    private $blogPostRepository;
-
-    public function __construct()
-    {
-        parent::__construct();
-        $this->blogPostRepository = app(BlogPostRepository::class); //app вертає об'єкт класа
-    }
     /**
      * Display a listing of the resource.
      *
@@ -25,9 +15,6 @@ class PostController extends BaseController
     public function index()
     {
         //
-        $paginator = $this->blogPostRepository->getAllWithPaginate();
-
-        return view('blog.admin.posts.index', compact('paginator'));
     }
 
     /**
